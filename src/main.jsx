@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { WalletConnect } from "./components/WalletConnect";
-import MetadataUploader from "./components/MetadataUploader";
-import SubmitTransaction from "./components/SubmitTransaction";
+import MetadataClient from "./components/MetadataClient";
+import { MakeTx } from "./components/MakeTx";
 
 const App = () => {
   const [metadataCID, setMetadataCID] = useState("");
@@ -11,8 +11,8 @@ const App = () => {
     <WalletConnect>
       <div>
         <h1>IPFS License Demo</h1>
-        <MetadataUploader setMetadataCID={setMetadataCID} />
-        <SubmitTransaction metadataCID={metadataCID} walletAddress={walletAddress} />
+        <MetadataClient setMetadataCID={setMetadataCID} />
+        <MakeTx metadataCID={metadataCID} walletAddress={walletAddress} />
       </div>
     </WalletConnect>
   );

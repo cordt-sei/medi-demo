@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useAccount, useSigner } from "wagmi";
+import { useAccount, useSigner } from "viem";
 import { uploadJsonToIPFS } from "../utils/ipfs";
 import { hashFile } from "../utils/hash";
-import LicenseDropdown from "./LicenseDropdown";
+import LicenseMenu from "./LicenseMenu";
 import { ethers } from "ethers";
 
 const UploadForm = () => {
@@ -83,7 +83,7 @@ const UploadForm = () => {
         placeholder="File Hash"
         onChange={(e) => setHash(e.target.value)}
       />
-      <LicenseDropdown onSelect={setLicense} />
+      <LicenseMenu onSelect={setLicense} />
       <button onClick={handleSubmit} disabled={!walletAddress}>
         Submit
       </button>

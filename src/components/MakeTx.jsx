@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { ethers } from "ethers";
 
-const MakeTx = ({ metadataCID, walletAddress }) => {
+export const MakeTx = ({ metadataCID, walletAddress }) => {
 
   
   const [transactionHash, setTransactionHash] = useState("");
@@ -44,5 +44,3 @@ const MakeTx = ({ metadataCID, walletAddress }) => {
     </div>
   );
 };
-
-export default MakeTx;

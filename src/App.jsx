@@ -1,5 +1,5 @@
 import { WalletConnect } from "./components/WalletConnect";
-import UploadForm from "./components/UploadForm";
+import UploadForm from "./components/MetadataClient";
 import TransactionTracker from "./components/TransactionTracker";
 
 const App = () => {
