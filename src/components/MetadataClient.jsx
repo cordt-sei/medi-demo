@@ -1,9 +1,34 @@
 import React, { useState } from "react";
-import { useAccount, useSigner } from "viem";
+import { useWallet } from '../utils/client';
 import { uploadJsonToIPFS } from "../utils/ipfs";
 import { hashFile } from "../utils/hash";
 import LicenseMenu from "./LicenseMenu";
 import { ethers } from "ethers";
+
+export const MetadataClient = () => {
+  const { account, publicClient, connectWallet } = useWallet();
+
+  const fetchAccountData = async () => {
+    if (!account) {
+      console.error('No account connected.');
+      return;
+    }
+
+    const balance = await publicClient.getBalance({ address: account });
+    console.log('Balance:', balance);
+  };
+
+  return (
+    <div>
+      <button onClick={connectWallet}>
+        {account ? `Connected: ${account}` : 'Connect Wallet'}
+      </button>
+      {account && (
+        <button onClick={fetchAccountData}>Fetch Account Data</button>
+      )}
+    </div>
+  );
+};
 
 const UploadForm = () => {
   const { address: walletAddress } = useAccount(); // Get wallet address from Wagmi

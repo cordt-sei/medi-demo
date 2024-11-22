@@ -1,7 +1,6 @@
-import { createPublicClient, http } from 'viem';
-import { useState } from 'react';
+import React, { useState, useEffect } from "react";
+import { createPublicClient, http } from "viem";
 
-// Replace this with your actual chain information
 const SEI_CHAIN = {
   id: 1328,
   name: "Sei Atlantic-2 Testnet",
@@ -13,28 +12,62 @@ const SEI_CHAIN = {
   },
 };
 
-export const WalletConnect = ({ children }) => {
+const WalletConnect = ({ children, setWalletAddress }) => {
   const [publicClient, setPublicClient] = useState(null);
+  const [walletAddress, setInternalWalletAddress] = useState(null);
 
-  // Initialize Viem Public Client
-  const initializeClient = () => {
-    const client = createPublicClient({
-      chain: SEI_CHAIN,
-      transport: http(SEI_CHAIN.rpcUrls[0]),
-    });
-    setPublicClient(client);
-    console.log("Viem Client Initialized:", client);
+  const connectWallet = async () => {
+    if (window.ethereum) {
+      try {
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        setWalletAddress(accounts[0]);
+        setInternalWalletAddress(accounts[0]);
+        console.log("Wallet connected:", accounts[0]);
+        initializeClient();
+      } catch (error) {
+        console.error("Wallet connection error:", error);
+      }
+    } else {
+      alert("No wallet found. Please install MetaMask or Leap Wallet.");
+    }
   };
 
+  const initializeClient = () => {
+    try {
+      const client = createPublicClient({
+        chain: SEI_CHAIN,
+        transport: http(SEI_CHAIN.rpcUrls[0]),
+      });
+      setPublicClient(client);
+      console.log("Blockchain client initialized:", client);
+    } catch (error) {
+      console.error("Error initializing client:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (walletAddress && !publicClient) {
+      initializeClient();
+    }
+  }, [walletAddress, publicClient]);
+
   return (
-    <div>
-      <button onClick={initializeClient}>Connect Wallet</button>
-      {publicClient && (
-        <div>
+    <div className="wallet-container">
+      {!walletAddress ? (
+        <button className="connect-btn" onClick={connectWallet}>
+          Connect Wallet
+        </button>
+      ) : (
+        <div className="wallet-info">
+          <p>Connected Wallet: {walletAddress}</p>
           <p>Connected to: {SEI_CHAIN.name}</p>
-          {children}
         </div>
       )}
+      {children}
     </div>
   );
 };
+
+export default WalletConnect;
