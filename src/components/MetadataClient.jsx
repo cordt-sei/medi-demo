@@ -1,3 +1,5 @@
+// MetadataClient.jsx
+
 import React, { useState } from "react";
 import { useWallet } from '../utils/client';
 import { uploadJsonToIPFS } from "../utils/ipfs";

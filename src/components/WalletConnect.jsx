@@ -1,3 +1,5 @@
+// WalletConnect.jsx
+
 import React, { useState, useEffect } from "react";
 import { createPublicClient, http } from "viem";
 

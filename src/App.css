@@ -1,48 +1,90 @@
+/* General Body Styling */
 body {
   font-family: 'Arial', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f0f2f5;
-  color: #333;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-h1 {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 2.5rem;
-  color: #2c3e50;
+/* Theme Variables */
+:root {
+  --background-color: #f9fafc;
+  --text-color: #333;
+  --container-background: #fff;
+  --container-shadow: rgba(0, 0, 0, 0.1);
 }
 
+[data-theme="dark"] {
+  --background-color: #121212;
+  --text-color: #f9fafc;
+  --container-background: #1e1e1e;
+  --container-shadow: rgba(255, 255, 255, 0.1);
+}
+
+/* Page Container */
 .container {
   max-width: 600px;
-  margin: 0 auto;
+  margin: 50px auto;
   padding: 20px;
-  background: #fff;
+  background: var(--container-background);
   border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px var(--container-shadow);
+  position: relative;
+  top: 10%;
+  transform: translateY(-50%);
+  text-align: center;
+}
+
+/* Header */
+h1 {
+  text-align: center;
+  font-size: 2.5rem;
+  color: var(--text-color);
+  margin-bottom: 30px;
+}
+
+/* Wallet Section */
+.wallet-section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.wallet-section button {
+  width: auto;
+  padding: 10px 20px;
+  margin: 0 auto;
+}
+
+/* License Menu */
+.license-menu {
+  margin-top: 20px;
 }
 
 label {
   font-weight: bold;
-  margin-top: 10px;
   display: block;
+  margin: 10px 0 5px;
 }
 
-input[type="text"],
-select {
+select,
+input[type="text"] {
   width: 100%;
   padding: 10px;
-  margin: 10px 0;
+  margin-bottom: 20px;
   border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 1rem;
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
+/* Buttons */
 button {
   display: inline-block;
-  width: calc(50% - 5px);
-  padding: 10px;
-  margin: 10px 5px 0 0;
+  padding: 10px 15px;
+  margin: 10px 5px 0;
   background-color: #3498db;
   color: white;
   border: none;
@@ -60,15 +102,63 @@ button:last-child {
   margin-right: 0;
 }
 
-.wallet-info,
-.license-menu,
+/* Metadata Section */
+.metadata-container {
+  margin: 20px 0;
+}
+
+/* Transaction Section */
 .transaction-container {
+  text-align: center;
   margin-top: 20px;
 }
 
+.transaction-container button {
+  margin-top: 20px;
+}
+
+/* Error Message */
 .error {
   color: red;
   font-weight: bold;
   text-align: center;
   margin-top: 20px;
+}
+
+.error-boundary {
+  text-align: center;
+  margin: 20px;
+  padding: 20px;
+  border: 1px solid red;
+  background-color: #fdd;
+  border-radius: 5px;
+}
+
+.error-boundary h2 {
+  color: red;
+}
+
+.error-boundary button {
+  background-color: red;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.error-boundary button:hover {
+  background-color: darkred;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-color);
+  font-size: 1.5rem;
 }

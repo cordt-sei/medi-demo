@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { createPublicClient, http } from 'viem';
+import { ErrorBoundary } from './error';
 
 const SEI_CHAIN = {
   id: 1328,
   name: "Sei Atlantic-2 Testnet",
   rpcUrls: ["https://evm-rpc-testnet.sei-apis.com"],
 };
+
 
 export const useWallet = () => {
   const [account, setAccount] = useState(null);
