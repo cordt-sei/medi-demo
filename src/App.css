@@ -160,9 +160,19 @@ button:last-child {
 }
 
 /* Metadata Section */
-.metadata-container,
-.license-menu {
+.metadata-container {
   width: 100%;
+  max-width: 600px; /* Adjust based on your container size */
+  margin: 0 auto;
+}
+
+input#metadataCID {
+  width: 100%;
+  box-sizing: border-box; /* Prevent overflow */
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
 }
 
 /* Transaction Section */

@@ -1,3 +1,5 @@
+// App.jsx
+
 import React, { useState, useEffect } from "react";
 import LicenseMenu from "./components/LicenseMenu";
 import WalletConnect from "./components/WalletConnect";
@@ -9,6 +11,7 @@ import "./App.css";
 const App = () => {
   // State variables
   const [walletAddress, setWalletAddress] = useState(null);
+  const [walletClient, setWalletClient] = useState(null);
   const [selectedLicense, setSelectedLicense] = useState("");
   const [metadataCID, setMetadataCID] = useState("");
   const [publicClient, setPublicClient] = useState(null);
@@ -72,7 +75,7 @@ const App = () => {
               console.log("Wallet client initialized:", client);
             }}
           />
-  
+          
           {/* Conditional Rendering */}
           {walletAddress && (
             <>

@@ -9,18 +9,24 @@ import { Buffer } from "buffer";
 export const MakeTx = ({ metadataCID, walletAddress, walletClient }) => {
   console.log("MakeTx Props:", { metadataCID, walletAddress, walletClient });
 
-  // Validate props
+  const [transactionHash, setTransactionHash] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Validate props and dependencies
   if (!metadataCID || !walletAddress || !walletClient) {
-    console.error("Missing props in MakeTx:", {
+    console.error("Missing required props in MakeTx:", {
       metadataCID,
       walletAddress,
       walletClient,
     });
-    return null;
+    return (
+      <div>
+        <p className="error-message">
+          Missing required data. Please ensure all fields are filled correctly and try again.
+        </p>
+      </div>
+    );
   }
-
-  const [transactionHash, setTransactionHash] = useState("");
-  const [loading, setLoading] = useState(false); // Loading state for better UX.
 
   const handleSubmit = async () => {
     if (!metadataCID || !walletAddress || !walletClient) {
@@ -31,7 +37,7 @@ export const MakeTx = ({ metadataCID, walletAddress, walletClient }) => {
     }
 
     try {
-      setLoading(true); // Disable button during submission.
+      setLoading(true);
       console.log("Fetching metadata from IPFS...");
       const metadata = await fetchFromIPFS(metadataCID);
 
@@ -63,29 +69,28 @@ export const MakeTx = ({ metadataCID, walletAddress, walletClient }) => {
 
       console.log("Preparing transaction...");
       const tx = {
+        from: walletAddress,
         to: walletAddress,
         value: parseEther("0.0000000001"),
         data: `0x${Buffer.from(JSON.stringify(txData)).toString("hex")}`,
       };
 
-      console.log("Signing and sending transaction...");
-      const signedTransaction = await walletClient.signTransaction(tx); // Use walletClient for signing.
-      const transactionHash = await walletClient.sendSignedTransaction(signedTransaction); // Send signed transaction.
-
-      console.log("Waiting for transaction receipt...");
-      const receipt = await walletClient.waitForTransactionReceipt({
-        hash: transactionHash,
+      console.log("Sending transaction...");
+      const transactionHash = await walletClient.request({
+        method: "eth_sendTransaction",
+        params: [tx],
       });
 
-      setTransactionHash(receipt.transactionHash);
+      setTransactionHash(transactionHash);
+
       alert(
-        `Transaction submitted! View it at https://seistream.app/transactions/${receipt.transactionHash}`
+        `Transaction submitted! View it at https://seiscan.com/tx/${transactionHash}`
       );
     } catch (error) {
       console.error("Error submitting transaction:", error);
       alert("An error occurred while submitting the transaction.");
     } finally {
-      setLoading(false); // Re-enable button after completion.
+      setLoading(false);
     }
   };
 
@@ -99,7 +104,7 @@ export const MakeTx = ({ metadataCID, walletAddress, walletClient }) => {
         <p>
           Transaction Hash:{" "}
           <a
-            href={`https://seistream.app/transactions/${transactionHash}`}
+            href={`https://testnet.seistream.app/txransactions/${txHash}`}
             target="_blank"
             rel="noopener noreferrer"
           >
