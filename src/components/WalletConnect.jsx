@@ -51,8 +51,9 @@ const WalletConnect = ({ setWalletAddress, setPublicClient, setWalletClient, chi
         method: "eth_getBalance",
         params: [address, "latest"],
       });
-      setWalletBalance(parseFloat(balance) / 1e18); // Convert Wei to Ether
-      console.log(`Wallet balance: ${walletBalance} SEI`);
+      const formattedBalance = parseFloat(BigInt(balance).toString()) / 1e18; // Convert Wei to Ether
+      setWalletBalance(formattedBalance);
+      console.log(`Wallet balance: ${formattedBalance} SEI`);
     } catch (error) {
       console.error("Error fetching wallet balance:", error);
     }
@@ -60,46 +61,45 @@ const WalletConnect = ({ setWalletAddress, setPublicClient, setWalletClient, chi
 
   // Function to connect wallet
   const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
+    if (!window.ethereum || !window.ethereum.isMetaMask) {
+        throw new Error("MetaMask is not installed or not active.");
+    }
+
+    try {
         const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
+            method: "eth_requestAccounts",
         });
 
         if (accounts && accounts[0]) {
-          setWalletAddress(accounts[0]);
-          setConnectedWallet(accounts[0]);
+            setWalletAddress(accounts[0]);
+            setConnectedWallet(accounts[0]);
 
-          const publicClient = createPublicClient({
-            chain: seiTestnet,
-            transport: http(seiTestnet.rpcUrls.default.http[0]),
-          });
+            const publicClient = createPublicClient({
+                chain: seiTestnet,
+                transport: http(seiTestnet.rpcUrls.default.http[0]),
+            });
 
-          const walletClient = createWalletClient({
-            chain: seiTestnet,
-            transport: custom(window.ethereum),
-          });
+            const walletClient = createWalletClient({
+                chain: seiTestnet,
+                transport: custom(window.ethereum),
+            });
 
-          setPublicClient(publicClient);
-          setWalletClient(walletClient);
+            setPublicClient(publicClient);
+            setWalletClient(walletClient);
 
-          await switchToSeiChain();
-          await getBalance(accounts[0], walletClient); // Fetch balance after connection
-
-          console.log("Wallet connected:", accounts[0]);
+            console.log("Wallet connected:", accounts[0]);
+            await switchToSeiChain();
+            await getBalance(accounts[0], walletClient); // Fetch balance
         } else {
-          console.error("No accounts found.");
+            console.error("No accounts found.");
         }
-      } catch (error) {
+    } catch (error) {
         console.error("Error connecting wallet:", error);
         if (error.message.includes("Premature close")) {
-          alert("Wallet connection lost. Please reconnect.");
+            alert("Wallet connection lost. Please reconnect.");
         }
-      }
-    } else {
-      alert("No wallet found. Please install MetaMask or Leap Wallet.");
     }
-  };
+};
 
   return (
     <div className="wallet-container">
