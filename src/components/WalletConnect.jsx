@@ -1,4 +1,4 @@
-// WalletConnect.jsx
+// WalletCOnnect.jsx
 
 import React, { useState, useEffect } from "react";
 import { createPublicClient, http } from "viem";
@@ -14,9 +14,8 @@ const SEI_CHAIN = {
   },
 };
 
-const WalletConnect = ({ children, setWalletAddress }) => {
-  const [publicClient, setPublicClient] = useState(null);
-  const [walletAddress, setInternalWalletAddress] = useState(null);
+const WalletConnect = ({ setWalletAddress, setPublicClient, children }) => {
+  const [internalWalletAddress, setInternalWalletAddress] = useState(null);
 
   const connectWallet = async () => {
     if (window.ethereum) {
@@ -26,13 +25,12 @@ const WalletConnect = ({ children, setWalletAddress }) => {
         });
         setWalletAddress(accounts[0]);
         setInternalWalletAddress(accounts[0]);
-        console.log("Wallet connected:", accounts[0]);
         initializeClient();
       } catch (error) {
         console.error("Wallet connection error:", error);
       }
     } else {
-      alert("No wallet found. Please install MetaMask or Leap Wallet.");
+      alert("No wallet found. Please install MetaMask.");
     }
   };
 
@@ -50,24 +48,23 @@ const WalletConnect = ({ children, setWalletAddress }) => {
   };
 
   useEffect(() => {
-    if (walletAddress && !publicClient) {
+    if (internalWalletAddress) {
       initializeClient();
     }
-  }, [walletAddress, publicClient]);
+  }, [internalWalletAddress]);
 
   return (
     <div className="wallet-container">
-      {!walletAddress ? (
+      {!internalWalletAddress ? (
         <button className="connect-btn" onClick={connectWallet}>
           Connect Wallet
         </button>
       ) : (
-        <div className="wallet-info">
-          <p>Connected Wallet: {walletAddress}</p>
-          <p>Connected to: {SEI_CHAIN.name}</p>
+        <div>
+          <p>Connected Wallet: {internalWalletAddress}</p>
+          {children}
         </div>
       )}
-      {children}
     </div>
   );
 };

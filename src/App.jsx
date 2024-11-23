@@ -1,5 +1,3 @@
-// App.jsx
-
 import React, { useState, useEffect } from "react";
 import LicenseMenu from "./components/LicenseMenu";
 import WalletConnect from "./components/WalletConnect";
@@ -11,6 +9,7 @@ const App = () => {
   const [walletAddress, setWalletAddress] = useState(null);
   const [selectedLicense, setSelectedLicense] = useState(null);
   const [metadataCID, setMetadataCID] = useState("");
+  const [publicClient, setPublicClient] = useState(null);
   const [theme, setTheme] = useState(
     window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
   );
@@ -33,31 +32,37 @@ const App = () => {
       <div className="theme-toggle" onClick={toggleTheme}>
         {theme === "dark" ? <FaSun size={20} /> : <FaMoon size={20} />}
       </div>
-      <h1>IPFS License Demo</h1>
       <div className="container">
-        <WalletConnect setWalletAddress={setWalletAddress}>
-          <div className="license-menu">
-            <LicenseMenu onSelect={handleLicenseSelect} />
-          </div>
-          <div className="metadata-container">
-            <label htmlFor="metadataCID">Metadata CID:</label>
-            <input
-              id="metadataCID"
-              type="text"
-              placeholder="Enter Metadata CID"
-              value={metadataCID}
-              onChange={(e) => setMetadataCID(e.target.value)}
+        <h1>IPFS License Demo</h1>
+        <WalletConnect
+          setWalletAddress={setWalletAddress}
+          setPublicClient={setPublicClient}
+        />
+        <div className="license-menu">
+          <LicenseMenu onSelect={handleLicenseSelect} />
+        </div>
+        <div className="metadata-container">
+          <label htmlFor="metadataCID">Metadata CID:</label>
+          <input
+            id="metadataCID"
+            type="text"
+            placeholder="Enter Metadata CID"
+            value={metadataCID}
+            onChange={(e) => setMetadataCID(e.target.value)}
+          />
+        </div>
+        {selectedLicense && metadataCID && walletAddress && (
+          <div className="transaction-container">
+            <MakeTx
+              metadataCID={metadataCID}
+              walletAddress={walletAddress}
+              publicClient={publicClient}
             />
           </div>
-          {selectedLicense && metadataCID && walletAddress && (
-            <div className="transaction-container">
-              <MakeTx metadataCID={metadataCID} walletAddress={walletAddress} />
-            </div>
-          )}
-        </WalletConnect>
+        )}
       </div>
     </div>
-  );
+  );  
 };
 
 export default App;

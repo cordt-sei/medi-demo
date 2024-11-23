@@ -1,3 +1,5 @@
+// client.js
+
 import { useState } from 'react';
 import { createPublicClient, http } from 'viem';
 import { ErrorBoundary } from './error';

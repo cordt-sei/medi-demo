@@ -1,3 +1,5 @@
+// hash.js
+
 /**
  * Hashes a file or data using the SHA-256 algorithm.
  * @param {File|Blob|Buffer|ArrayBuffer} file - The file or data to hash
