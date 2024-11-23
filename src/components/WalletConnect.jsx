@@ -3,25 +3,24 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { createWalletClient, createPublicClient, http, custom } from "viem";
-import { seiTestnet } from "./chains"; // Import your defined chain
+import { seiTestnet } from "./chains";
 
 const WalletConnect = ({ setWalletAddress, setPublicClient, setWalletClient, children }) => {
   const [connectedWallet, setConnectedWallet] = useState(null);
-  const [walletBalance, setWalletBalance] = useState(null); // New state for balance
+  const [walletBalance, setWalletBalance] = useState(null);
 
-  // Function to handle switching to Sei Chain
   const switchToSeiChain = async () => {
     try {
+      console.log("Attempting to switch to Sei chain...");
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: `0x${seiTestnet.id.toString(16)}` }],
       });
       console.log(`Switched to ${seiTestnet.name}`);
     } catch (error) {
-      console.error("Error switching chain:", error);
       if (error.code === 4902) {
+        console.warn("Chain not found. Attempting to add Sei chain...");
         try {
-          console.log("Attempting to add the chain...");
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
             params: [
@@ -33,80 +32,87 @@ const WalletConnect = ({ setWalletAddress, setPublicClient, setWalletClient, chi
               },
             ],
           });
-          await switchToSeiChain();
+          console.log("Sei chain added successfully.");
+          await switchToSeiChain(); // Retry switching after adding the chain
         } catch (addError) {
-          console.error("Error adding chain:", addError);
-          alert("Failed to add the Sei chain. Please try again.");
+          console.error("Failed to add Sei chain:", addError);
+          alert("Could not add Sei chain. Please check your wallet settings.");
         }
       } else {
-        alert("Failed to switch to Sei chain. Please try again.");
+        console.error("Failed to switch to Sei chain:", error);
+        alert("Could not switch to Sei chain. Please try again.");
       }
     }
   };
 
-  // Function to fetch wallet balance
   const getBalance = async (address, client) => {
+    if (!client) {
+      console.error("Public client is not initialized.");
+      return;
+    }
+
     try {
       const balance = await client.request({
         method: "eth_getBalance",
         params: [address, "latest"],
       });
-      const formattedBalance = parseFloat(BigInt(balance).toString()) / 1e18; // Convert Wei to Ether
+      const formattedBalance = Number(balance) / 1e18; // Convert Wei to Ether
       setWalletBalance(formattedBalance);
       console.log(`Wallet balance: ${formattedBalance} SEI`);
     } catch (error) {
       console.error("Error fetching wallet balance:", error);
+      alert("Failed to fetch wallet balance. Check your connection.");
     }
   };
 
-  // Function to connect wallet
   const connectWallet = async () => {
     if (!window.ethereum || !window.ethereum.isMetaMask) {
-        throw new Error("MetaMask is not installed or not active.");
+      alert("MetaMask is not installed or not active.");
+      return;
     }
 
     try {
-        const accounts = await window.ethereum.request({
-            method: "eth_requestAccounts",
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+
+      if (accounts && accounts[0]) {
+        const account = accounts[0];
+        console.log("Wallet connected:", account);
+        setWalletAddress(account);
+        setConnectedWallet(account);
+
+        const publicClient = createPublicClient({
+          chain: seiTestnet,
+          transport: http(seiTestnet.rpcUrls.default.http[0]),
         });
 
-        if (accounts && accounts[0]) {
-            setWalletAddress(accounts[0]);
-            setConnectedWallet(accounts[0]);
+        const walletClient = createWalletClient({
+          chain: seiTestnet,
+          transport: custom(window.ethereum),
+        });
 
-            const publicClient = createPublicClient({
-                chain: seiTestnet,
-                transport: http(seiTestnet.rpcUrls.default.http[0]),
-            });
+        setPublicClient(publicClient);
+        setWalletClient(walletClient);
 
-            const walletClient = createWalletClient({
-                chain: seiTestnet,
-                transport: custom(window.ethereum),
-            });
-
-            setPublicClient(publicClient);
-            setWalletClient(walletClient);
-
-            console.log("Wallet connected:", accounts[0]);
-            await switchToSeiChain();
-            await getBalance(accounts[0], walletClient); // Fetch balance
-        } else {
-            console.error("No accounts found.");
-        }
+        await switchToSeiChain();
+        await getBalance(account, publicClient);
+      } else {
+        console.error("No accounts found.");
+        alert("No wallet accounts detected. Please check your wallet.");
+      }
     } catch (error) {
-        console.error("Error connecting wallet:", error);
-        if (error.message.includes("Premature close")) {
-            alert("Wallet connection lost. Please reconnect.");
-        }
+      console.error("Error connecting wallet:", error);
+      alert(`Wallet connection error: ${error.message}`);
     }
-};
+  };
 
   return (
     <div className="wallet-container">
       {connectedWallet ? (
         <div>
           <p>Connected Wallet: {connectedWallet}</p>
-          <p>Balance: {walletBalance ? `${walletBalance} SEI` : "Loading..."}</p>
+          <p>Balance: {walletBalance !== null ? `${walletBalance} SEI` : "Loading..."}</p>
           {children}
         </div>
       ) : (

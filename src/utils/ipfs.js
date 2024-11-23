@@ -43,6 +43,8 @@ export const uploadToIPFS = async (content, isFile = false) => {
 
   try {
     const response = await axios.post(url, body, { headers });
+    console.log('Uploaded to IPFS. CID:', response.data.IpfsHash);
+    alert(`Content uploaded to IPFS. CID: ${response.data.IpfsHash}`);
     return response.data.IpfsHash; // Return the IPFS CID
   } catch (error) {
     console.error("Error uploading to IPFS:", error.response?.data || error.message);
