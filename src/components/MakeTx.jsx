@@ -1,93 +1,87 @@
-// MakeTx.jsx
-
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { parseEther } from "viem";
-import { fetchFromIPFS, uploadToIPFS } from "../utils/ipfs";
+import { fetchFromIPFS, uploadToIPFS, verifyContentHash } from "../utils/ipfs";
 import { Buffer } from "buffer";
+import { hashFile } from "../utils/hash";
 
-export const MakeTx = ({ metadataCID, walletAddress, walletClient, publicClient }) => {
+export const MakeTx = ({ metadataCID, walletAddress, walletClient, publicClient, selectedLicense }) => {
   const [transactionHash, setTransactionHash] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const prepareTransactionData = async () => {
+    // Step 1: Fetch metadata from IPFS
+    console.log("Fetching metadata from IPFS...");
+    const metadata = await fetchFromIPFS(metadataCID);
+
+    // Step 2: Hash the fetched metadata
+    console.log("Hashing metadata...");
+    const metadataHash = await hashFile(new Blob([JSON.stringify(metadata)]));
+
+    // Step 3: Upload the hash to IPFS for additional verification
+    console.log("Uploading metadata hash to IPFS...");
+    const metadataHashCID = await uploadToIPFS({ hash: metadataHash });
+
+    // Step 4: Verify the hash integrity
+    console.log("Verifying metadata hash...");
+    const isVerified = await verifyContentHash(metadata, metadataHash);
+    if (!isVerified) {
+      throw new Error("Metadata hash verification failed.");
+    }
+
+    // Step 5: Construct transaction data
+    console.log("Constructing transaction data...");
+    const txData = {
+      image: { cid: metadataCID, hash: metadataHash },
+      uploader: walletAddress,
+      license: { type: selectedLicense, hash_of_full_text: metadataHashCID },
+    };
+
+    return {
+      transactionData: {
+        from: walletAddress,
+        to: walletAddress,
+        value: parseEther("0.0000000001"),
+        data: `0x${Buffer.from(JSON.stringify(txData)).toString("hex")}`,
+      },
+    };
+  };
+
   const handleSubmit = async () => {
     try {
-      // MetaMask readiness check
       if (!window.ethereum || !window.ethereum.isMetaMask) {
         throw new Error("MetaMask is not installed or not active.");
       }
-
-      // Validate walletClient and publicClient
-      if (!walletClient || !publicClient) {
-        console.error("Wallet client or public client is not initialized.");
-        alert("Please connect your wallet properly.");
+      if (!walletClient || !publicClient || !metadataCID || !selectedLicense) {
+        alert("All fields are required. Ensure the wallet is connected.");
         return;
       }
 
       setLoading(true);
 
-      // Fetch metadata from IPFS
-      console.log("Fetching metadata from IPFS...");
-      const metadata = await fetchFromIPFS(metadataCID);
+      // Preprocess and construct transaction data
+      const { transactionData } = await prepareTransactionData();
 
-      // Hash the metadata
-      console.log("Hashing metadata...");
-      const metadataHashBuffer = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(JSON.stringify(metadata))
-      );
-      const metadataHash = Array.from(new Uint8Array(metadataHashBuffer))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      // Upload metadata hash to IPFS
-      console.log("Uploading metadata hash to IPFS...");
-      const metadataHashCID = await uploadToIPFS({ hash: metadataHash });
-
-      // Build transaction data
-      console.log("Building transaction data...");
-      const txData = {
-        image: { cid: metadataCID, hash: metadataHash },
-        uploader: walletAddress,
-        license: {
-          type: "CC-BY-4.0",
-          repository:
-            "https://gist.githubusercontent.com/cordt-sei/license.txt",
-          hash_of_full_text: metadataHashCID,
-        },
-      };
-
-      const tx = {
-        from: walletAddress,
-        to: walletAddress,
-        value: parseEther("0.0000000001"),
-        data: `0x${Buffer.from(JSON.stringify(txData)).toString("hex")}`,
-      };
-
-      // Estimate gas
+      // Step 6: Estimate gas
       console.log("Estimating gas...");
-      let gasEstimate;
-      try {
-        gasEstimate = await walletClient.estimateGas({
-          ...tx,
-        });
-      } catch (error) {
-        console.warn("Gas estimation failed, using fallback:", error);
-        gasEstimate = "21000"; // Default to 21000 gas units
-      }
+      const gasEstimate = await walletClient.request({
+        method: "eth_estimateGas",
+        params: [transactionData],
+      }).catch(() => "50000");
 
-      // Send transaction
+      // Step 7: Submit transaction
       console.log("Sending transaction...");
-      const transactionHash = await walletClient.sendTransaction({
-        ...tx,
-        gas: gasEstimate,
+      const txHash = await walletClient.request({
+        method: "eth_sendTransaction",
+        params: [{ ...transactionData, gas: gasEstimate }],
       });
 
-      setTransactionHash(transactionHash);
-      alert(`Transaction submitted! Hash: ${transactionHash}`);
+      // Store transaction hash and inform the user
+      setTransactionHash(txHash);
+      alert(`Transaction submitted successfully. Hash: ${txHash}`);
     } catch (error) {
-      console.error("Transaction Error:", error);
-      alert(error.message || "An error occurred while submitting the transaction.");
+      console.error("Transaction error:", error);
+      alert(`Transaction failed: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -120,4 +114,5 @@ MakeTx.propTypes = {
   walletAddress: PropTypes.string.isRequired,
   walletClient: PropTypes.object.isRequired,
   publicClient: PropTypes.object.isRequired,
+  selectedLicense: PropTypes.string.isRequired,
 };

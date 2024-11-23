@@ -76,6 +76,9 @@ export const fetchFromIPFS = async (cid) => {
  */
 export const verifyContentHash = async (content, expectedHash) => {
   try {
+    console.log("Content to verify:", content);
+    console.log("Expected Hash:", expectedHash);
+
     const contentString =
       content instanceof Blob || content instanceof File
         ? await content.text()
@@ -88,6 +91,7 @@ export const verifyContentHash = async (content, expectedHash) => {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
+    console.log("Calculated hash:", calculatedHash, "Expected hash:", expectedHash);
     return calculatedHash === expectedHash;
   } catch (error) {
     console.error("Error verifying content hash:", error);

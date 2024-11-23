@@ -93,8 +93,10 @@ const App = () => {
                     metadataCID={metadataCID}
                     walletAddress={walletAddress}
                     walletClient={walletClient}
-                    publicClient={publicClient} // Passing publicClient prop
+                    publicClient={publicClient}
+                    selectedLicense={selectedLicense}
                   />
+
                 ) : (
                   <button disabled className="disabled-btn">
                     Submit

@@ -90,6 +90,7 @@ const WalletConnect = ({ setWalletAddress, setPublicClient, setWalletClient, chi
         const walletClient = createWalletClient({
           chain: seiTestnet,
           transport: custom(window.ethereum),
+          account, // Explicitly set the connected account
         });
 
         setPublicClient(publicClient);
