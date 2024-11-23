@@ -52,7 +52,7 @@ body {
 h1 {
   font-size: 2rem;
   color: var(--text);
-  margin-bottom: 10px;
+  margin-bottom: 650px;
 }
 
 /* Wallet Section */
@@ -117,6 +117,46 @@ button:hover {
 
 button:last-child {
   margin-right: 0;
+}
+
+/* Tooltip styling */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.tooltiptext {
+  visibility: hidden;
+  width: 200px;
+  background-color: var(--container-background);
+  color: var(--text);
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%; /* Show above the element */
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Info Message Styling */
+.info-message {
+  font-size: 1rem;
+  color: var(--text);
+  text-align: center;
+  background-color: var(--container-background);
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px var(--container-shadow);
 }
 
 /* Metadata Section */

@@ -1,7 +1,6 @@
-// WalletCOnnect.jsx
-
-import React, { useState, useEffect } from "react";
-import { createPublicClient, http } from "viem";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import { createWalletClient, createPublicClient, http } from "viem";
 
 const SEI_CHAIN = {
   id: 1328,
@@ -14,59 +13,71 @@ const SEI_CHAIN = {
   },
 };
 
-const WalletConnect = ({ setWalletAddress, setPublicClient, children }) => {
-  const [internalWalletAddress, setInternalWalletAddress] = useState(null);
+const WalletConnect = ({ setWalletAddress, setPublicClient, setWalletClient, children }) => {
+  const [connectedWallet, setConnectedWallet] = useState(null); // Internal state for wallet connection
 
+  // Function to connect the wallet
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
-        setWalletAddress(accounts[0]);
-        setInternalWalletAddress(accounts[0]);
-        initializeClient();
+        if (accounts && accounts[0]) {
+          const walletAddress = accounts[0];
+          setWalletAddress(walletAddress);
+          setConnectedWallet(walletAddress);
+
+          // Create blockchain clients
+          const publicClient = createPublicClient({
+            chain: SEI_CHAIN,
+            transport: http(SEI_CHAIN.rpcUrls[0]),
+          });
+
+          const walletClient = createWalletClient({
+            chain: SEI_CHAIN,
+            transport: window.ethereum,
+          });
+
+          // Set the clients in the parent component's state
+          setPublicClient(publicClient);
+          setWalletClient(walletClient);
+
+          console.log("Wallet connected:", walletAddress);
+          console.log("Public client initialized:", publicClient);
+          console.log("Wallet client initialized:", walletClient);
+        } else {
+          console.error("No accounts found.");
+        }
       } catch (error) {
         console.error("Wallet connection error:", error);
       }
     } else {
-      alert("No wallet found. Please install MetaMask.");
+      alert("No wallet found. Please install MetaMask or Leap Wallet.");
     }
   };
-
-  const initializeClient = () => {
-    try {
-      const client = createPublicClient({
-        chain: SEI_CHAIN,
-        transport: http(SEI_CHAIN.rpcUrls[0]),
-      });
-      setPublicClient(client);
-      console.log("Blockchain client initialized:", client);
-    } catch (error) {
-      console.error("Error initializing client:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (internalWalletAddress) {
-      initializeClient();
-    }
-  }, [internalWalletAddress]);
 
   return (
     <div className="wallet-container">
-      {!internalWalletAddress ? (
+      {connectedWallet ? (
+        <div>
+          <p>Connected Wallet: {connectedWallet}</p>
+          {children}
+        </div>
+      ) : (
         <button className="connect-btn" onClick={connectWallet}>
           Connect Wallet
         </button>
-      ) : (
-        <div>
-          <p>Connected Wallet: {internalWalletAddress}</p>
-          {children}
-        </div>
       )}
     </div>
   );
+};
+
+WalletConnect.propTypes = {
+  setWalletAddress: PropTypes.func.isRequired,
+  setPublicClient: PropTypes.func.isRequired,
+  setWalletClient: PropTypes.func.isRequired,
+  children: PropTypes.node,
 };
 
 export default WalletConnect;

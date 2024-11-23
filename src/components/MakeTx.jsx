@@ -6,22 +6,32 @@ import { parseEther } from "viem";
 import { fetchFromIPFS, uploadToIPFS } from "../utils/ipfs";
 import { Buffer } from "buffer";
 
-export const MakeTx = ({ metadataCID, walletAddress, publicClient }) => {
-  const [transactionHash, setTransactionHash] = useState("");
+export const MakeTx = ({ metadataCID, walletAddress, walletClient }) => {
+  console.log("MakeTx Props:", { metadataCID, walletAddress, walletClient });
 
-  MakeTx.propTypes = {
-    metadataCID: PropTypes.string.isRequired,
-    walletAddress: PropTypes.string.isRequired,
-    publicClient: PropTypes.object.isRequired,
-  };
+  // Validate props
+  if (!metadataCID || !walletAddress || !walletClient) {
+    console.error("Missing props in MakeTx:", {
+      metadataCID,
+      walletAddress,
+      walletClient,
+    });
+    return null;
+  }
+
+  const [transactionHash, setTransactionHash] = useState("");
+  const [loading, setLoading] = useState(false); // Loading state for better UX.
 
   const handleSubmit = async () => {
-    try {
-      if (!publicClient || !walletAddress) {
-        console.error("Public client or wallet address is missing.");
-        return;
-      }
+    if (!metadataCID || !walletAddress || !walletClient) {
+      alert(
+        "Please ensure you have connected your wallet, entered a Metadata CID, and selected a license."
+      );
+      return;
+    }
 
+    try {
+      setLoading(true); // Disable button during submission.
       console.log("Fetching metadata from IPFS...");
       const metadata = await fetchFromIPFS(metadataCID);
 
@@ -51,20 +61,20 @@ export const MakeTx = ({ metadataCID, walletAddress, publicClient }) => {
         },
       };
 
-      console.log("Submitting transaction with data:", txData);
+      console.log("Preparing transaction...");
       const tx = {
         to: walletAddress,
         value: parseEther("0.0000000001"),
         data: `0x${Buffer.from(JSON.stringify(txData)).toString("hex")}`,
       };
 
-      const transaction = await publicClient.sendTransaction({
-        account: walletAddress,
-        ...tx,
-      });
+      console.log("Signing and sending transaction...");
+      const signedTransaction = await walletClient.signTransaction(tx); // Use walletClient for signing.
+      const transactionHash = await walletClient.sendSignedTransaction(signedTransaction); // Send signed transaction.
 
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: transaction,
+      console.log("Waiting for transaction receipt...");
+      const receipt = await walletClient.waitForTransactionReceipt({
+        hash: transactionHash,
       });
 
       setTransactionHash(receipt.transactionHash);
@@ -73,14 +83,17 @@ export const MakeTx = ({ metadataCID, walletAddress, publicClient }) => {
       );
     } catch (error) {
       console.error("Error submitting transaction:", error);
+      alert("An error occurred while submitting the transaction.");
+    } finally {
+      setLoading(false); // Re-enable button after completion.
     }
   };
 
   return (
     <div>
       <h3>Submit Transaction</h3>
-      <button onClick={handleSubmit} disabled={!metadataCID || !walletAddress}>
-        Submit
+      <button onClick={handleSubmit} disabled={loading}>
+        {loading ? "Submitting..." : "Submit"}
       </button>
       {transactionHash && (
         <p>
@@ -96,4 +109,10 @@ export const MakeTx = ({ metadataCID, walletAddress, publicClient }) => {
       )}
     </div>
   );
+};
+
+MakeTx.propTypes = {
+  metadataCID: PropTypes.string.isRequired,
+  walletAddress: PropTypes.string.isRequired,
+  walletClient: PropTypes.object.isRequired,
 };
