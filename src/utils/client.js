@@ -1,8 +1,7 @@
 // client.js
 
-import { useState, useEffect } from 'react';
-import { createPublicClient, http } from 'viem';
-import { ErrorBoundary } from './error';
+import { useState, useEffect } from "react";
+import { createPublicClient, http } from "viem";
 
 const SEI_CHAIN = {
   id: 1328,
@@ -12,7 +11,7 @@ const SEI_CHAIN = {
 
 export const useWallet = () => {
   const [account, setAccount] = useState(null);
-  const [publicClient] = useState(() =>
+  const [publicClient, setPublicClient] = useState(() =>
     createPublicClient({
       chain: SEI_CHAIN,
       transport: http(SEI_CHAIN.rpcUrls[0]),
@@ -20,22 +19,50 @@ export const useWallet = () => {
   );
 
   const connectWallet = async () => {
-    if (window.ethereum) {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      setAccount(accounts[0]);
-      publicClient.account = accounts[0]; // Associate account with publicClient
-    } else {
-      console.error('No wallet found. Please install MetaMask.');
+    try {
+      if (window.ethereum) {
+        // Request wallet connection and fetch accounts
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        if (accounts && accounts.length > 0) {
+          setAccount(accounts[0]); // Set the connected account
+        } else {
+          console.error("No accounts found.");
+        }
+      } else {
+        console.error("No wallet found. Please install MetaMask.");
+      }
+    } catch (error) {
+      console.error("Error connecting wallet:", error);
     }
   };
 
   useEffect(() => {
     if (window.ethereum) {
-      window.ethereum.on('accountsChanged', connectWallet);
-      window.ethereum.on('disconnect', () => {
-        console.error('MetaMask disconnected.');
-        setAccount(null); // Reset account on disconnection
+      // Listen for account changes
+      window.ethereum.on("accountsChanged", (accounts) => {
+        if (accounts.length > 0) {
+          setAccount(accounts[0]);
+        } else {
+          setAccount(null); // Reset account if none are available
+        }
       });
+
+      // Listen for wallet disconnection
+      window.ethereum.on("disconnect", () => {
+        console.error("MetaMask disconnected.");
+        setAccount(null);
+      });
+
+      // Attempt to connect on page load
+      connectWallet();
+
+      // Cleanup listeners on component unmount
+      return () => {
+        window.ethereum.removeListener("accountsChanged", connectWallet);
+        window.ethereum.removeListener("disconnect", () => setAccount(null));
+      };
     }
   }, []);
 

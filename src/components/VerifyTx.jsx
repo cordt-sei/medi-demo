@@ -2,91 +2,80 @@
 
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import { parseEther } from "viem";
-import { fetchFromIPFS, uploadToIPFS } from "../utils/ipfs";
-import { Buffer } from "buffer";
+import { fetchFromIPFS } from "../utils/ipfs";
+import { hashFile } from "../utils/hash";
+import axios from "axios";
 
-export const MakeTx = ({ metadataCID, walletAddress, walletClient }) => {
-  console.log("MakeTx Props:", { metadataCID, walletAddress, walletClient });
-
-  const [transactionHash, setTransactionHash] = useState("");
+export const VerifyTx = ({ 
+  metadataCID, 
+  licenseSource, // Either a URL or an IPFS CID
+  expectedMetadataHash, 
+  expectedLicenseHash 
+}) => {
+  const [verificationResult, setVerificationResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  if (!metadataCID || !walletAddress || !walletClient) {
-    console.error("Missing required props in MakeTx:", {
-      metadataCID,
-      walletAddress,
-      walletClient,
-    });
-    return (
-      <div>
-        <p className="error-message">
-          Missing required data. Please ensure all fields are filled correctly and try again.
-        </p>
-      </div>
-    );
-  }
+  const fetchLicenseContent = async (source) => {
+    try {
+      if (source.startsWith("http")) {
+        // Fetch license content from a URL
+        console.log("Fetching license content from URL...");
+        const response = await axios.get(source);
+        return response.data;
+      } else {
+        // Fetch license content from IPFS
+        console.log("Fetching license content from IPFS...");
+        return await fetchFromIPFS(source);
+      }
+    } catch (error) {
+      console.error("Error fetching license content:", error);
+      throw new Error("Failed to fetch license content.");
+    }
+  };
 
-  const handleSubmit = async () => {
-    if (!metadataCID || !walletAddress || !walletClient) {
-      alert(
-        "Please ensure you have connected your wallet, entered a Metadata CID, and selected a license."
-      );
+  const handleVerify = async () => {
+    if (!metadataCID || !licenseSource || !expectedMetadataHash || !expectedLicenseHash) {
+      alert("Missing required fields. Please ensure all inputs are provided.");
       return;
     }
 
     try {
       setLoading(true);
+      let result = { metadataVerified: false, licenseVerified: false };
+
+      // Step 1: Fetch metadata from IPFS
       console.log("Fetching metadata from IPFS...");
       const metadata = await fetchFromIPFS(metadataCID);
 
+      // Step 2: Hash the metadata and compare with the expected hash
       console.log("Hashing metadata...");
-      const metadataHashBuffer = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(JSON.stringify(metadata))
-      );
-      const metadataHash = Array.from(new Uint8Array(metadataHashBuffer))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+      const metadataHash = await hashFile(new Blob([JSON.stringify(metadata)]));
+      if (metadataHash === expectedMetadataHash) {
+        result.metadataVerified = true;
+        console.log("Metadata hash verified successfully.");
+      } else {
+        console.warn("Metadata hash does not match.");
+      }
 
-      console.log("Uploading metadata hash to IPFS...");
-      const metadataHashCID = await uploadToIPFS({ hash: metadataHash });
+      // Step 3: Fetch license content
+      console.log("Fetching license content...");
+      const licenseContent = await fetchLicenseContent(licenseSource);
 
-      console.log("Building transaction data...");
-      const txData = {
-        image: { cid: metadataCID, hash: metadataHash },
-        uploader: walletAddress,
-        license: {
-          type: "CC-BY-4.0",
-          repository:
-            "https://gist.githubusercontent.com/cordt-sei/bbcc2356d3c8d7f6c2b8f2e082751fdc/raw/8b52e2120b8b6a4209b1ef3c89925a667c4903e2/license.txt",
-          hash_of_full_text: metadataHashCID,
-        },
-      };
+      // Step 4: Hash the license content and compare with the expected hash
+      console.log("Hashing license content...");
+      const licenseHash = await hashFile(new Blob([licenseContent]));
+      if (licenseHash === expectedLicenseHash) {
+        result.licenseVerified = true;
+        console.log("License hash verified successfully.");
+      } else {
+        console.warn("License hash does not match.");
+      }
 
-      console.log("Preparing transaction...");
-      const tx = {
-        from: walletAddress,
-        to: walletAddress,
-        value: parseEther("0.0000000001"),
-        data: `0x${Buffer.from(JSON.stringify(txData)).toString("hex")}`,
-      };
-
-      console.log("Sending transaction...");
-      const transactionHash = await walletClient.request({
-        method: "eth_sendTransaction",
-        params: [tx],
-      });
-
-      console.log("Transaction submitted:", transactionHash);
-      setTransactionHash(transactionHash);
-
-      alert(
-        `Transaction submitted! View it at https://testnet.seistream.app/txransactions/${transactionHash}`
-      );
+      // Store verification results
+      setVerificationResult(result);
     } catch (error) {
-      console.error("Error submitting transaction:", error);
-      alert("An error occurred while submitting the transaction.");
+      console.error("Error during verification:", error);
+      alert("Verification failed. Check the console for details.");
     } finally {
       setLoading(false);
     }
@@ -94,28 +83,23 @@ export const MakeTx = ({ metadataCID, walletAddress, walletClient }) => {
 
   return (
     <div>
-      <h3>Submit Transaction</h3>
-      <button onClick={handleSubmit} disabled={loading}>
-        {loading ? "Submitting..." : "Submit"}
+      <h3>Verify Transaction Data</h3>
+      <button onClick={handleVerify} disabled={loading}>
+        {loading ? "Verifying..." : "Verify"}
       </button>
-      {transactionHash && (
-        <p>
-          Transaction Hash:{" "}
-          <a
-            href={`https://testnet.seistream.app/txransactions/${transactionHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {transactionHash}
-          </a>
-        </p>
+      {verificationResult && (
+        <div>
+          <p>Metadata Verified: {verificationResult.metadataVerified ? "✅ Yes" : "❌ No"}</p>
+          <p>License Verified: {verificationResult.licenseVerified ? "✅ Yes" : "❌ No"}</p>
+        </div>
       )}
     </div>
   );
 };
 
-MakeTx.propTypes = {
-  metadataCID: PropTypes.string.isRequired,
-  walletAddress: PropTypes.string.isRequired,
-  walletClient: PropTypes.object.isRequired,
+VerifyTx.propTypes = {
+  metadataCID: PropTypes.string.isRequired, // IPFS CID of the metadata file
+  licenseSource: PropTypes.string.isRequired, // URL or IPFS CID of the license text
+  expectedMetadataHash: PropTypes.string.isRequired, // Expected hash of the metadata
+  expectedLicenseHash: PropTypes.string.isRequired, // Expected hash of the license text
 };

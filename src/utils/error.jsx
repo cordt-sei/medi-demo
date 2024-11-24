@@ -26,6 +26,7 @@ export class ErrorBoundary extends React.Component {
       return (
         <div className="error-boundary">
           <h2>Something went wrong.</h2>
+          <p>Please try refreshing the page or restarting your session.</p>
           <button onClick={this.handleRetry}>Retry</button>
         </div>
       );

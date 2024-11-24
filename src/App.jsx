@@ -8,50 +8,103 @@ import { FaSun, FaMoon } from "react-icons/fa";
 import { ErrorBoundary } from "./utils/error";
 import "./App.css";
 
+// Utility function to fetch license text
+const fetchLicenseText = async (licensePath) => {
+  try {
+    // Check if the licensePath is local
+    if (licensePath.startsWith("/src/assets")) {
+      const response = await fetch(licensePath);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch local license text from ${licensePath}`);
+      }
+      return await response.text();
+    } else {
+      // Fallback to remote URL
+      const response = await fetch(licensePath);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch remote license text from ${licensePath}`);
+      }
+      return await response.text();
+    }
+  } catch (error) {
+    console.error("Error fetching license text:", error);
+    return null;
+  }
+};
+
 const App = () => {
   const [walletAddress, setWalletAddress] = useState(null);
   const [walletClient, setWalletClient] = useState(null);
   const [publicClient, setPublicClient] = useState(null);
   const [selectedLicense, setSelectedLicense] = useState("");
   const [metadataCID, setMetadataCID] = useState("");
+  const [licenseRepo, setLicenseRepo] = useState("");
+  const [licenseText, setLicenseText] = useState("");
   const [theme, setTheme] = useState(
     window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
   );
 
-  // Debugging Logs
+  // Fetch license text when licenseRepo changes
   useEffect(() => {
-    console.log("App state updated:");
-    console.log("walletAddress:", walletAddress);
-    console.log("publicClient:", publicClient);
-    console.log("walletClient:", walletClient);
-    console.log("selectedLicense:", selectedLicense);
-    console.log("metadataCID:", metadataCID);
-  }, [walletAddress, publicClient, walletClient, selectedLicense, metadataCID]);
+    if (licenseRepo) {
+      fetchLicenseText(licenseRepo).then(setLicenseText);
+    }
+  }, [licenseRepo]);
 
+  // Manage theme changes
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
+    const root = document.documentElement;
+    root.setAttribute("data-theme", theme);
+
+    const handleThemeChange = (e) => {
+      setTheme(e.matches ? "dark" : "light");
+    };
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    mediaQuery.addEventListener("change", handleThemeChange);
+
+    return () => mediaQuery.removeEventListener("change", handleThemeChange);
   }, [theme]);
 
-  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+  };
 
   const handleLicenseSelect = (license) => {
     setSelectedLicense(license);
+  
+    // Use the local file path as the primary license source
+    setLicenseRepo("/src/assets/license.js");
+  
     console.log("Selected License:", license);
   };
+  
+  useEffect(() => {
+    if (licenseRepo) {
+      fetchLicenseText(licenseRepo).then(setLicenseText);
+    }
+  }, [licenseRepo]);
 
   const isTransactionReady = Boolean(
-    walletAddress && publicClient && selectedLicense && metadataCID && walletClient
+    walletAddress &&
+      publicClient &&
+      selectedLicense &&
+      metadataCID &&
+      walletClient &&
+      licenseText
   );
 
   return (
-    <div className="app">
-      <div className="theme-toggle" onClick={toggleTheme}>
-        {theme === "dark" ? <FaSun size={20} /> : <FaMoon size={20} />}
-      </div>
+    <ErrorBoundary>
+      <div className="app">
+        <div className="theme-toggle" onClick={toggleTheme}>
+          {theme === "dark" ? <FaSun size={20} /> : <FaMoon size={20} />}
+        </div>
 
-      <h1>IPFS License Demo</h1>
-      <div className="container">
-        <ErrorBoundary>
+        <h1>IPFS License Demo</h1>
+        <div className="container">
           <WalletConnect
             setWalletAddress={(address) => {
               setWalletAddress(address);
@@ -95,8 +148,8 @@ const App = () => {
                     walletClient={walletClient}
                     publicClient={publicClient}
                     selectedLicense={selectedLicense}
+                    licenseRepo={licenseRepo}
                   />
-
                 ) : (
                   <button disabled className="disabled-btn">
                     Submit
@@ -105,9 +158,9 @@ const App = () => {
               </div>
             </>
           )}
-        </ErrorBoundary>
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 
